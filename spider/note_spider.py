@@ -11,7 +11,7 @@ from multiprocessing.dummy import Pool
 
 logger = logging.getLogger(__name__)
 class NoteSpider:
-    def __init__(self, mid):
+    def __init__(self, mid='',aids=[],is_business=False):
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                             filename='../logs/huahuo_spider.log')
@@ -36,32 +36,44 @@ class NoteSpider:
             "https": "http://" + proxy03['proxyAuth'] + '@' + proxy03['proxyServer'][7:]
         }
         self.mid = mid
+        self.aids=aids
         self.brands_dict=self.load_brands_dict()
+        self.is_business=is_business
+
 
     # up主主页获取视频list
     def get_video_list(self):
-        while True:
-            try:
-                resp = requests.get(self.video_list_url % self.mid, headers=self.headers)
-            except Exception as e:
-                # record('huahuo', 'error')
-                logger.exception(e)
-                continue
-            if resp.status_code == 200:
-                break
-        resp_dict = resp.json()
-        note_urls=[]
-        num=10 #爬起每个up主笔记数量
-        for i in range(1, num+1):
-            aid = resp_dict['data']['list']['vlist'][i]['aid']
-            # tag_urls.append(self.note_tag_url % str(aid))
-            n = note.objects(note_id=str(aid)).first()
-            if not n:
-            #     continue
-            # else:
-                logger.info(f"add new note: {str(aid)}")
-            note_urls.append(self.note_detail_url % str(aid))
-        N=10 #进程数量
+        if self.mid:
+            while True:
+                try:
+                    resp = requests.get(self.video_list_url % self.mid, headers=self.headers)
+                except Exception as e:
+                    # record('huahuo', 'error')
+                    logger.exception(e)
+                    continue
+                if resp.status_code == 200:
+                    break
+            resp_dict = resp.json()
+            note_urls=[]
+            num=10 #爬起每个up主笔记数量
+            for i in range(1, num+1):
+                aid = resp_dict['data']['list']['vlist'][i]['aid']
+                # tag_urls.append(self.note_tag_url % str(aid))
+                n = note.objects(note_id=str(aid)).first()
+                if not n:
+                #     continue
+                # else:
+                    logger.info(f"add new note: {str(aid)}")
+                note_urls.append(self.note_detail_url % str(aid))
+        elif self.aids:
+
+            note_urls = []
+            for aid in self.aids:
+                note_urls.append(self.note_detail_url % aid)
+        else:
+            return
+
+        N=len(note_urls) #进程数量
         pool = Pool(N)
         pool.map(self.get_note_detail,note_urls)
         # pool.map(self.get_note_tag, self.dic)
@@ -136,6 +148,8 @@ class NoteSpider:
         #         print(f'update note: {note.note_id}')
         aid=str(note_dict['aid'])
         n = note(note_id=aid)
+        if self.is_business:
+            n.is_business=True
         n.cid = str(note_dict['cid'])
         n.bvid = str(note_dict['bvid'])
         n.user_id = str(note_dict['owner']['mid'])
@@ -162,7 +176,7 @@ class NoteSpider:
         n.tags = tags
         k = kol.objects(user_id=n.user_id).first()
         if k:
-            n.fans_view = round(float(k.fans_num) / float(note_dict['stat']['view']), 3)
+            n.fans_view = round(float(k.fans_num) / float(n.view), 3)
         n.save()
         logger.info(f'update detail for note: {str(aid)}')
 

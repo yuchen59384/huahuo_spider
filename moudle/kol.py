@@ -19,6 +19,7 @@ class FansPortrait(EmbeddedDocument):
 
 class kol(Document):
     user_id = StringField(primary_key=True)
+    mcn_id = StringField()
     update_time = DateTimeField()
     fans_like_num = IntField()  # 粉丝获赞
     fans_num = IntField()  # 粉丝数
@@ -29,7 +30,21 @@ class kol(Document):
     second_partition_name = StringField()
     signature = StringField()  # 签名
     tags = ListField()
-    upper_prices = ListField()  # 服务报价
+    mcn_company_name=StringField()
+
+    # upper_prices = ListField()  # 服务报价
+    # 定制
+    custom_platform_price = FloatField()
+    custom_discount_price = FloatField()
+    # 植入
+    implant_platform_price = FloatField()
+    implant_discount_price = FloatField()
+    # 直发动态
+    direct_message_platform_price = FloatField()
+    direct_message_discount_price = FloatField()
+    # 转发动态
+    forward_message_platform_price = FloatField()
+    forward_message_discount_price = FloatField()
 
     average_barrage_cnt = IntField()  # 平均弹幕数
     average_collect_cnt = IntField()  # 平均收藏数
